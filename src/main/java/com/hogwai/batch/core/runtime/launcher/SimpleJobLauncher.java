@@ -18,6 +18,10 @@ import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 
+/**
+ * Default {@link JobLauncher} implementation that executes steps sequentially
+ * and manages the job execution lifecycle via a {@link JobRepository}.
+ */
 @Singleton
 @Primary
 public class SimpleJobLauncher implements JobLauncher {
@@ -25,10 +29,16 @@ public class SimpleJobLauncher implements JobLauncher {
     private static final Logger LOG = LoggerFactory.getLogger(SimpleJobLauncher.class);
     private final JobRepository jobRepository;
 
+    /**
+     * Creates a new launcher backed by the given repository.
+     *
+     * @param jobRepository the repository for persisting execution metadata
+     */
     public SimpleJobLauncher(JobRepository jobRepository) {
         this.jobRepository = jobRepository;
     }
 
+    /** {@inheritDoc} */
     @Override
     public JobExecution run(Job job, JobParameters jobParameters) throws Exception {
         JobInstance jobInstance = jobRepository.createJobInstance(job.getName(), jobParameters);

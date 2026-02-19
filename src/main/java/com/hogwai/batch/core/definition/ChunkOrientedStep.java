@@ -14,6 +14,13 @@ import com.hogwai.batch.core.runtime.StepExecution;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * A {@link Step} that reads, optionally processes, and writes items in fixed-size chunks.
+ * Items are accumulated until the chunk size is reached, then written as a batch.
+ *
+ * @param <I> the input item type
+ * @param <O> the output item type
+ */
 public class ChunkOrientedStep<I, O> implements Step {
 
     private final String name;
@@ -27,6 +34,17 @@ public class ChunkOrientedStep<I, O> implements Step {
     private final List<ItemProcessListener<I, O>> itemProcessListeners;
     private final List<ItemWriteListener<O>> itemWriteListeners;
 
+    /**
+     * Creates a chunk-oriented step without item-level listeners.
+     *
+     * @param name           the step name
+     * @param chunkSize      the number of items per chunk
+     * @param reader         the item reader
+     * @param processor      the item processor, or {@code null} to pass items through
+     * @param writer         the item writer
+     * @param stepListeners  step-level lifecycle listeners
+     * @param chunkListeners chunk-level lifecycle listeners
+     */
     public ChunkOrientedStep(
             String name,
             int chunkSize,
@@ -40,6 +58,20 @@ public class ChunkOrientedStep<I, O> implements Step {
                 List.of(), List.of(), List.of());
     }
 
+    /**
+     * Creates a chunk-oriented step with full listener support.
+     *
+     * @param name                 the step name
+     * @param chunkSize            the number of items per chunk
+     * @param reader               the item reader
+     * @param processor            the item processor, or {@code null} to pass items through
+     * @param writer               the item writer
+     * @param stepListeners        step-level lifecycle listeners
+     * @param chunkListeners       chunk-level lifecycle listeners
+     * @param itemReadListeners    read-level listeners
+     * @param itemProcessListeners process-level listeners
+     * @param itemWriteListeners   write-level listeners
+     */
     public ChunkOrientedStep(
             String name,
             int chunkSize,
@@ -64,11 +96,13 @@ public class ChunkOrientedStep<I, O> implements Step {
         this.itemWriteListeners = itemWriteListeners;
     }
 
+    /** {@inheritDoc} */
     @Override
     public String getName() {
         return name;
     }
 
+    /** {@inheritDoc} */
     @Override
     @SuppressWarnings("unchecked")
     public void execute(StepExecution stepExecution) {
@@ -120,11 +154,10 @@ public class ChunkOrientedStep<I, O> implements Step {
         }
     }
 
-    @SuppressWarnings("unchecked")
     private O processItem(I item) {
         itemProcessListeners.forEach(l -> l.beforeProcess(item));
         try {
-            O result = (O) ((ItemProcessor) processor).process(item);
+            O result = processor.process(item);
             itemProcessListeners.forEach(l -> l.afterProcess(item, result));
             return result;
         } catch (Exception e) {

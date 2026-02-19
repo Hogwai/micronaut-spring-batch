@@ -18,6 +18,15 @@ import com.hogwai.batch.core.runtime.StepExecution;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * A chunk-oriented {@link Step} with fault-tolerance support, including configurable
+ * skip and retry policies for handling transient or expected errors during processing.
+ *
+ * @param <I> the input item type
+ * @param <O> the output item type
+ * @see SkipPolicy
+ * @see RetryPolicy
+ */
 public class FaultTolerantChunkStep<I, O> implements Step {
 
     private final String name;
@@ -35,6 +44,20 @@ public class FaultTolerantChunkStep<I, O> implements Step {
     private final List<ItemWriteListener<O>> itemWriteListeners;
     private final List<SkipListener<I, O>> skipListeners;
 
+    /**
+     * Creates a fault-tolerant chunk step without item-level or skip listeners.
+     *
+     * @param name           the step name
+     * @param chunkSize      the number of items per chunk
+     * @param reader         the item reader
+     * @param processor      the item processor, or {@code null} to pass items through
+     * @param writer         the item writer
+     * @param skipPolicy     policy determining whether to skip on error
+     * @param retryPolicy    policy determining whether to retry on error
+     * @param backoffPolicy  policy for delay between retries
+     * @param stepListeners  step-level lifecycle listeners
+     * @param chunkListeners chunk-level lifecycle listeners
+     */
     public FaultTolerantChunkStep(
             String name, int chunkSize,
             ItemReader<? extends I> reader,
@@ -50,6 +73,24 @@ public class FaultTolerantChunkStep<I, O> implements Step {
                 stepListeners, chunkListeners, List.of(), List.of(), List.of(), List.of());
     }
 
+    /**
+     * Creates a fault-tolerant chunk step with full listener support.
+     *
+     * @param name                 the step name
+     * @param chunkSize            the number of items per chunk
+     * @param reader               the item reader
+     * @param processor            the item processor, or {@code null} to pass items through
+     * @param writer               the item writer
+     * @param skipPolicy           policy determining whether to skip on error
+     * @param retryPolicy          policy determining whether to retry on error
+     * @param backoffPolicy        policy for delay between retries
+     * @param stepListeners        step-level lifecycle listeners
+     * @param chunkListeners       chunk-level lifecycle listeners
+     * @param itemReadListeners    read-level listeners
+     * @param itemProcessListeners process-level listeners
+     * @param itemWriteListeners   write-level listeners
+     * @param skipListeners        skip event listeners
+     */
     public FaultTolerantChunkStep(
             String name, int chunkSize,
             ItemReader<? extends I> reader,
@@ -81,9 +122,11 @@ public class FaultTolerantChunkStep<I, O> implements Step {
         this.skipListeners = skipListeners;
     }
 
+    /** {@inheritDoc} */
     @Override
     public String getName() { return name; }
 
+    /** {@inheritDoc} */
     @Override
     public void execute(StepExecution stepExecution) throws Exception {
         stepListeners.forEach(l -> l.beforeStep(stepExecution));
